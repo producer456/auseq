@@ -3,11 +3,34 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var model = AppModel()
     @State private var showingConfig = false
+    @State private var showingTracks = false
     @State private var mainMode: MainMode = .params
+    @Environment(\.horizontalSizeClass) private var hSize
 
     enum MainMode: String, CaseIterable { case params = "PARAMS", arrange = "ARRANGE" }
+    private var isPhone: Bool { hSize == .compact }
 
     var body: some View {
+        Group {
+            if isPhone { phoneBody } else { padBody }
+        }
+        .tint(Theme.orange)
+        .preferredColorScheme(.light)
+        .sheet(isPresented: $showingConfig) {
+            ConfigurationView(model: model)
+        }
+        .sheet(isPresented: $showingTracks) {
+            NavigationStack {
+                TrackListView(model: model)
+                    .navigationTitle("Tracks")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { showingTracks = false } } }
+            }
+        }
+    }
+
+    /// iPad — track list as a fixed sidebar between wood cheeks.
+    private var padBody: some View {
         ZStack {
             BrushedAluminum()
             HStack(spacing: 0) {
@@ -20,10 +43,13 @@ struct ContentView: View {
                 WoodPanel().frame(width: 16).ignoresSafeArea()
             }
         }
-        .tint(Theme.orange)
-        .preferredColorScheme(.light)
-        .sheet(isPresented: $showingConfig) {
-            ConfigurationView(model: model)
+    }
+
+    /// Phone — single column; tracks open in a drawer from the top bar.
+    private var phoneBody: some View {
+        ZStack {
+            BrushedAluminum()
+            mainArea
         }
     }
 
@@ -68,19 +94,23 @@ struct ContentView: View {
     }
 
     private var topBar: some View {
-        HStack {
+        HStack(spacing: 12) {
+            if isPhone {
+                Button { showingTracks = true } label: {
+                    Image(systemName: "list.bullet").font(.title3).foregroundStyle(Theme.orange)
+                }
+            }
             VStack(alignment: .leading, spacing: 3) {
                 Text("AUSEQ")
-                    .font(Theme.mono(26, .heavy))
+                    .font(Theme.mono(isPhone ? 18 : 26, .heavy))
                     .tracking(2)
                     .foregroundStyle(Theme.etched)
-                Text(midiSummary).etchedLabel(9, soft: true, weight: .medium)
+                if !isPhone { Text(midiSummary).etchedLabel(9, soft: true, weight: .medium) }
             }
             Button { showingConfig = true } label: {
                 Image(systemName: "gearshape.fill")
                     .font(.title3).foregroundStyle(Theme.orange)
             }
-            .padding(.leading, 14)
             Spacer()
             if let track = model.selectedTrack {
                 HStack(spacing: 8) {
@@ -92,7 +122,7 @@ struct ContentView: View {
                 }
             }
         }
-        .padding()
+        .padding(.horizontal, isPhone ? 12 : 16).padding(.vertical, isPhone ? 8 : 16)
     }
 
     private var midiSummary: String {
