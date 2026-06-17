@@ -4,6 +4,7 @@ struct ContentView: View {
     @StateObject private var model = AppModel()
     @State private var showingConfig = false
     @State private var showingTracks = false
+    @State private var keyboardVisible = true
     @State private var mainMode: MainMode = .params
     @Environment(\.horizontalSizeClass) private var hSize
 
@@ -59,7 +60,8 @@ struct ContentView: View {
             GoldHairline()
             TransportBar(seq: model.sequencer,
                          onQuantizeSelected: { model.quantizeSelected() },
-                         onQuantizeAll: { model.quantizeAll() })
+                         onQuantizeAll: { model.quantizeAll() },
+                         compact: isPhone)
             GoldHairline()
             modePicker
             if mainMode == .arrange {
@@ -79,9 +81,11 @@ struct ContentView: View {
                         .padding(.bottom, 6)
                 }
             }
-            PianoKeyboardView(model: model)
-                .padding(.horizontal, 10)
-                .padding(.bottom, 10)
+            if keyboardVisible {
+                PianoKeyboardView(model: model, height: isPhone ? 150 : 200)
+                    .padding(.horizontal, 10)
+                    .padding(.bottom, 10)
+            }
         }
     }
 
@@ -110,6 +114,10 @@ struct ContentView: View {
             Button { showingConfig = true } label: {
                 Image(systemName: "gearshape.fill")
                     .font(.title3).foregroundStyle(Theme.orange)
+            }
+            Button { keyboardVisible.toggle() } label: {
+                Image(systemName: "pianokeys")
+                    .font(.title3).foregroundStyle(keyboardVisible ? Theme.orange : Theme.etchedSoft)
             }
             Spacer()
             if let track = model.selectedTrack {
